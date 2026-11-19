@@ -1,9 +1,8 @@
 # PromoMats user management
 
 A [Vault Dweller](https://github.com/escadesupremo/vault-dweller-extension) skill for Vault
-admins: who has access to a PromoMats vault, who hasn't used it, and what a user holds
-before they leave. It can propose status, security profile and license changes, which
-the admin approves row by row before anything changes.
+admins: how much each user of a PromoMats vault has used it over the last 12 months, who
+needs a look, and an Excel file to work from.
 
 ## Install
 
@@ -15,26 +14,29 @@ github.com/escadesupremo/promomats-user-management
 
 ## What it does
 
-| Task | |
-| --- | --- |
-| Access overview | Active users by security profile and license type; admins by name |
-| Dormant users | Active users who haven't logged in for 30 to 180 days (needs a last-login field in the vault) |
-| Offboard a user | Their profile, groups and document roles, then a proposal to make them inactive |
-| Document roles | Who holds which role on a document, or what a user or group holds |
-| Group members | A group's members, or a user's groups |
-| Change users | Status, security profile or license changes the admin lists |
+1. Lists every user: company, activation and inactivation dates, license type.
+2. Counts each user's document actions over the last 12 months (views, downloads and
+   copies, from Document Usage records).
+3. Counts the user tasks each user held and completed over the same period.
+4. Flags active users who:
+   - have no document actions and no tasks, and were activated more than 60 days ago;
+   - read documents but have no tasks, on a Full User license.
+5. Hands over an Excel file: a Users sheet (grid, frozen header, filters, flagged users
+   first and shaded) and an Explanation sheet with the columns, the flag rules and the
+   queries behind each count.
 
-It reads with VQL (`user__sys`, `group__sys`, `group_membership__sys`, `doc_role__sys`)
-and changes `user__sys` records only through Vault Dweller's approval step. It can't
-reassign document ownership, roles or tasks; it lists them so you can do that in Vault.
+Vault Dweller counts and flags every row itself, so the numbers are exact however many
+users the vault has; the AI model sees only the first rows and the totals. The skill
+reads with VQL (`user__sys`, `document_usage__v`, `user_task__v`) and changes `user__sys`
+records only through Vault Dweller's approval step, never because a user was flagged.
 
 ## Layout
 
 ```
 skills/promomats-user-management/
   SKILL.md              the instructions and what the skill may use
-  reference/objects.md  the user, group and role objects and fields
-  reference/recipes.md  the query behind each task
+  reference/objects.md  the user, usage, task, group and role objects and fields
+  reference/recipes.md  the queries behind each step, and follow-ups
   reference/safety.md   the rules for proposing changes
 ```
 

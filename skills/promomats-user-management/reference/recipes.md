@@ -1,7 +1,92 @@
-# Queries for each task
+# Queries
 
-VQL has no GROUP BY or COUNT: fetch the rows and count them yourself. Replace the
-<placeholders>; check field and value names against the describe result first.
+VQL has no GROUP BY or COUNT. To count rows per user, use count_by: it pages through
+every row and counts in the extension. Replace the <placeholders>; check field and value
+names against the describe result first. `{{days_ago:N}}` becomes midnight UTC N days ago
+as a DateTime; `{{date_days_ago:N}}` the same day as a Date, for Date fields.
+
+## Base query (step 1)
+
+```sql
+SELECT id, name__v, company__sys, activation_date__sys, inactivation_date__sys,
+       license_type__sys, TOLABEL(license_type__sys) AS license_label
+FROM user__sys
+```
+
+TOLABEL needs API v24.1 or later. Without it, drop the last column.
+
+## Document actions per user, last 12 months (step 2)
+
+count_by, by `created_by__v`:
+
+```sql
+SELECT created_by__v
+FROM document_usage__v
+WHERE created_date__v >= '{{days_ago:365}}'
+```
+
+## Tasks per user, last 12 months (step 3)
+
+count_by, by `assigned_to__v`. Held (created or completed in the period):
+
+```sql
+SELECT assigned_to__v
+FROM user_task__v
+WHERE created_date__v >= '{{days_ago:365}}' OR completion_date__v >= '{{days_ago:365}}'
+```
+
+Completed:
+
+```sql
+SELECT assigned_to__v
+FROM user_task__v
+WHERE completion_date__v >= '{{days_ago:365}}'
+```
+
+## One user's latest document activity
+
+```sql
+SELECT id, activity_type__v, document_type__v, created_by__v, created_date__v
+FROM document_usage__v
+WHERE created_by__v = '<user id>'
+ORDER BY created_date__v DESC
+MAXROWS 10
+```
+
+## One user's latest tasks
+
+```sql
+SELECT
+    id,
+    name__v,
+    status__v,
+    created_by__v,
+    created_date__v,
+    modified_by__v,
+    modified_date__v,
+    assigned_to__v,
+    due_date__v,
+    first_assigned_date__v,
+    last_assigned_date__v,
+    completion_date__v,
+    complete__v,
+    assigned__v,
+    description__v,
+    lifecycle__v,
+    state__v,
+    priority__sys,
+    global_id__sys,
+    link__sys
+FROM user_task__v
+WHERE assigned_to__v = '<user id>'
+ORDER BY created_date__v DESC
+MAXROWS 10
+```
+
+Use MAXROWS for the number of rows, not LIMIT: LIMIT is deprecated and only sets the page
+size, without changing how many rows the query finds.
+
+The queries below are for follow-up questions about particular users, groups or documents.
 
 ## Access overview
 
